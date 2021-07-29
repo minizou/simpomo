@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="pomodoro_red">#F44336</color>
+    <color name="pomodoro_teal">#009688</color>
+    <color name="pomodoro_orange">#FF9800</color>
+    <color name="pomodoro_green">#8BC34A</color>
+    <color name="background_grey">#2B2B2B</color>
+    <color name="background_lighter_grey">#313335</color>
+    <color name="text_darker_grey">#53575A</color>
+    <color name="text_grey">#BBBBBB</color>
+    <color name="text_yellow">#E8BF6A</color>
+    <color name="text_white">#FFFFFFFF</color>
+</resources>

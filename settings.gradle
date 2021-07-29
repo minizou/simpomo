@@ -1,0 +1,2 @@
+rootProject.name = "Pomodoro_Alpha"
+include ':app'
