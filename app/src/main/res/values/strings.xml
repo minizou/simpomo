@@ -1,3 +1,13 @@
 <resources>
     <string name="app_name">Pomodoro_Alpha</string>
+    <string name="intro_message">[Click \'Begin Session\' to begin studying!]</string>
+    <string name="pause_message">Pause</string>
+    <string name="begin_break_message">Begin Break</string>
+    <string name="begin_session_message">Begin Session</string>
+    <string name="begin_long_break_message">Begin Long Break</string>
+    <string name="end_session_message">End Session</string>
+    <string name="resume_message">Resume</string>
+    <string name="study_time_message">[Study Time]</string>
+    <string name="long_break_time_message">Long Break Time</string>
+    <string name="break_time_message">[Break Time]</string>
 </resources>

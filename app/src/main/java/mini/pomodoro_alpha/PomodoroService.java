@@ -17,6 +17,7 @@ import androidx.core.app.NotificationCompat;
 
 public class PomodoroService extends Service {
     private PomodoroTimer timer;
+    private boolean isPauseActive;
 
     @Nullable
     @Override
@@ -40,7 +41,8 @@ public class PomodoroService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         long timeRemainingInMS = intent.getLongExtra("msRemaining",0);
-        startForeground(1, createNotification("" + timeRemainingInMS));
+        String timeFromActivity = timer.getTimeString(timeRemainingInMS / 1000); // FIXME: get rid of these / 1000s
+        startForeground(1, createNotification(timeFromActivity));
 
         timer = new PomodoroTimer(timeRemainingInMS,1000) {
             @RequiresApi(api = Build.VERSION_CODES.O)
@@ -48,13 +50,13 @@ public class PomodoroService extends Service {
             public void onTick(long timeInMS) {
                 super.onTick(timeInMS);
                 sendBroadcast();
-                updateNotification(getTimeString(timer.getMsRemaining() / 1000)); // FIXME
+                updateNotification(getTimeString(timer.getMsRemaining() / 1000));
                 Log.i("SHINOGI","Sending broadcast: " + timer.getMsRemaining());
 
             }
         };
 
-        boolean isPauseActive = intent.getBooleanExtra("isPauseActive",false);
+        isPauseActive = intent.getBooleanExtra("isPauseActive",false);
         if (!isPauseActive) { timer.start(); }
 
         Log.i("SHINOGI","Starting service and thus timer.");
@@ -88,6 +90,7 @@ public class PomodoroService extends Service {
         Intent intentLocal = new Intent();
         intentLocal.setAction("Counter");
         intentLocal.putExtra("timeRemaining",timer.getMsRemaining());
+        intentLocal.putExtra("isPauseActive",isPauseActive);
         sendBroadcast(intentLocal);
     }
 
