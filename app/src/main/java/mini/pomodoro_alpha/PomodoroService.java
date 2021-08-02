@@ -18,6 +18,7 @@ import androidx.core.app.NotificationCompat;
 public class PomodoroService extends Service {
     private PomodoroTimer timer;
     private boolean isPauseActive;
+    private boolean isBreakActive;
 
     @Nullable
     @Override
@@ -40,6 +41,7 @@ public class PomodoroService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        Log.i("SHINOGI","OnStartCommand (SERVICE)");
         long timeRemainingInMS = intent.getLongExtra("msRemaining",0);
         String timeFromActivity = timer.getTimeString(timeRemainingInMS / 1000); // FIXME: get rid of these / 1000s
         startForeground(1, createNotification(timeFromActivity));
@@ -52,10 +54,10 @@ public class PomodoroService extends Service {
                 sendBroadcast();
                 updateNotification(getTimeString(timer.getMsRemaining() / 1000));
                 Log.i("SHINOGI","Sending broadcast: " + timer.getMsRemaining());
-
             }
         };
 
+        isBreakActive = intent.getBooleanExtra("isBreakActive",false);
         isPauseActive = intent.getBooleanExtra("isPauseActive",false);
         if (!isPauseActive) { timer.start(); }
 
@@ -65,10 +67,10 @@ public class PomodoroService extends Service {
         return super.onStartCommand(intent, flags, startId);
     }
 
-
     public Notification createNotification(String text) {
         Log.i("SHINOGI","Creating notification");
         Intent notificationIntent = new Intent(this, MainActivity.class);
+        notificationIntent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
         PendingIntent pendingIntent = PendingIntent.getActivity(this,
                 0,notificationIntent,0);
         return new NotificationCompat.Builder(this, CHANNEL_ID)
@@ -87,10 +89,12 @@ public class PomodoroService extends Service {
     }
 
     public void sendBroadcast() {
+        Log.i("SHINOGI","Sending broadcast (SERVICE)");
         Intent intentLocal = new Intent();
         intentLocal.setAction("Counter");
         intentLocal.putExtra("timeRemaining",timer.getMsRemaining());
         intentLocal.putExtra("isPauseActive",isPauseActive);
+        intentLocal.putExtra("isBreakActive",isBreakActive);
         sendBroadcast(intentLocal);
     }
 

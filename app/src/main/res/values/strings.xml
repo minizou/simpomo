@@ -8,6 +8,6 @@
     <string name="end_session_message">End Session</string>
     <string name="resume_message">Resume</string>
     <string name="study_time_message">[Study Time]</string>
-    <string name="long_break_time_message">Long Break Time</string>
+    <string name="long_break_time_message">[Long Break Time]</string>
     <string name="break_time_message">[Break Time]</string>
 </resources>

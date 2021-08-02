@@ -33,10 +33,10 @@ public class MainActivity extends AppCompatActivity {
     private long msRemaining;
     private long secElapsed;
 
-    private final long STUDY_TIME_MS = 1 * 20 * 1000;
+    private final long STUDY_TIME_MS = 1 * 10 * 1000;
     private final long STUDY_TIME_SEC = STUDY_TIME_MS / 1000;
-    private final long BREAK_TIME_MS = 1 * 30 * 1000;
-    private final long LONG_BREAK_TIME_MS = 1 * 70 * 1000;
+    private final long BREAK_TIME_MS = 1 * 5 * 1000;
+    private final long LONG_BREAK_TIME_MS = 1 * 7 * 1000;
 
     // Inherited Methods
     @Override
@@ -44,7 +44,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        Log.i("SHINOGI","OnCreate, creating Main Activity.");
+        Log.i("SHINOGI","OnCreate (MAIN)");
 
         // initializing UI objects
         txtTimer = findViewById(R.id.txt_timer);
@@ -64,6 +64,7 @@ public class MainActivity extends AppCompatActivity {
             public void onReceive(Context context, Intent intent) {
                 msRemaining = intent.getLongExtra("timeRemaining",msRemaining);
                 isPauseActive = intent.getBooleanExtra("isPauseActive",isPauseActive);
+                isBreakActive = intent.getBooleanExtra("isBreakActive",isBreakActive);
                 saveServiceData();
                 Log.i("SHINOGI","Broadcast received by Main Activity: " + msRemaining);
             }
@@ -79,6 +80,7 @@ public class MainActivity extends AppCompatActivity {
         } catch (Exception e) { }
 
         getServiceData();
+        Log.i("SHINOGI","OnCreate MSREMAINING: " + msRemaining);
     }
 
     @Override
@@ -87,7 +89,17 @@ public class MainActivity extends AppCompatActivity {
         if (isSessionActive) {
             stopPomodoroService();
             Log.i("SHINOGI","Broadcast Receiver UNREGISTERED.");
-            unregisterReceiver(broadcastReceiver);
+            try {
+                unregisterReceiver(broadcastReceiver);
+            } catch (Exception e) { }
+            Log.i("SHINOGI","Restoring session.");
+        }
+        if (msRemaining != 0) {
+            restoreSession(); // TODO: new, fixme so that it's not just for msRemaining = 0
+        }
+        Log.i("SHINOGI","isPauseActive (onResume): " + isPauseActive);
+        if (isPauseActive && !isBreakActive) { // TODO: fixme, new
+            secElapsed++;
         }
         super.onResume();
     }
@@ -102,57 +114,130 @@ public class MainActivity extends AppCompatActivity {
         super.onPause();
     }
 
+    // Other Methods
+
+    public void restoreSession() {
+        Log.i("SHINOGI","Restoring session (MAIN).");
+        Log.i("SHINOGI","Session details: " + msRemaining + " " + isPauseActive);
+        Log.i("SHINOGI","Details x2: " + isSessionActive + " " + isBreakActive);
+        isSessionActive = true;
+        btnSession.setText(R.string.end_session_message);
+        updateTimerUI();
+        // FIXME: pass whether break is active or not
+        if (isBreakActive) {
+            restoreBreak();
+        } else {
+            restoreStudying();
+        }
+    }
+
+    public void restoreStudying() {
+        Log.i("SHINOGI","RestoreStudying (MAIN)");
+        createTimer(msRemaining);
+        txtStatus.setText(R.string.study_time_message);
+        changeButtonUI(btnBeginStudying,false,R.color.pomodoro_teal);
+        changeButtonUI(btnPause,true,R.color.pomodoro_red);
+
+        Log.i("SHINOGI","isPauseActive: " + isPauseActive);
+        if (!isPauseActive) {
+            startTimer();
+        } else {
+            isPauseActive = false;
+            pauseResumeTimer(btnPause);
+        }
+
+
+    } // TODO: combine with restoreBreak?
+
+    public void restoreBreak() {
+        Log.i("SHINOGI","restoreBreak (MAIN)");
+        createTimer(msRemaining);
+        if (numPomodoros % 4 == 0) {
+            txtStatus.setText(R.string.long_break_time_message);
+        } else {
+            txtStatus.setText(R.string.break_time_message);
+            btnBeginBreak.setText(R.string.begin_break_message);
+        }
+        changeButtonUI(btnBeginBreak,false,R.color.pomodoro_orange);
+        changeButtonUI(btnPause,true,R.color.pomodoro_red);
+
+        if (!isPauseActive) {
+            startTimer();
+        } else {
+            isPauseActive = false;
+            pauseResumeTimer(btnPause);
+        }
+    }
+
+
     // Service Methods
 
     private void startPomodoroService() {
-        Log.i("SHINOGI","Calling startPomodoroService.");
+        Log.i("SHINOGI","startPomodoroService() (MAIN)");
+
+        if (pomodoroTimer != null) { // TODO: new, added to fix timer running as service ran
+            Log.i("SHINOGI","Cancelled timer in startPomodoroService");
+            pomodoroTimer.cancel();
+        }
+
         Intent intentPomodoroService = new Intent(this,PomodoroService.class);
+        intentPomodoroService.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT); // FIXME: prevents multiple duplicates of service?
         intentPomodoroService.putExtra("msRemaining",pomodoroTimer.getMsRemaining());
         intentPomodoroService.putExtra("isPauseActive",isPauseActive);
+        intentPomodoroService.putExtra("isBreakActive",isBreakActive);
         startService(intentPomodoroService);
+
     }
 
     private void stopPomodoroService() {
+        Log.i("SHINOGI","stopPomodoroService (MAIN)");
         Intent intentPomodoroServiceStop = new Intent(this,PomodoroService.class);
         stopService(intentPomodoroServiceStop);
     }
 
     private void saveServiceData() {
-        Log.i("SHINOGI","Sending shared preference data");
+        Log.i("SHINOGI","saveServiceData (MAIN)");
         SharedPreferences.Editor editor = sharedPreferences.edit();
         if (isSessionActive) {
-            Log.i("SHINOGI","Shared data applied: " + msRemaining + " | " + isPauseActive);
+            Log.i("SHINOGI","Shared data applied: " + msRemaining + " | " + isPauseActive + " | " + isBreakActive);
         } else {
             msRemaining = 0;
             isPauseActive = false;
-            Log.i("SHINOGI","Clearing data: " +  msRemaining + " | " + isPauseActive);
+            isBreakActive = false;
+            Log.i("SHINOGI","Clearing data: " +  msRemaining + " | " + isPauseActive + " | " + isBreakActive);
         }
         editor.putLong("msRemaining",msRemaining);
         editor.putBoolean("isPauseActive",isPauseActive);
+        editor.putBoolean("isBreakActive",isBreakActive);
         editor.apply();
     }
 
     private void getServiceData() {
+        Log.i("SHINOGI","getServiceData() (MAIN)");
         Log.i("SHINOGI","Attempting to retrieve service data.");
         if (sharedPreferences != null) {
             msRemaining = sharedPreferences.getLong("msRemaining",msRemaining);
             isPauseActive = sharedPreferences.getBoolean("isPauseActive",isPauseActive);
+            isBreakActive = sharedPreferences.getBoolean("isBreakActive",isBreakActive);
             Log.i("SHINOGI","Service data obtained: " + msRemaining);
         } else { // FIXME: check [else] if it is redundant
             msRemaining = 0;
+            isBreakActive = false;
             isPauseActive = false;
         }
     }
 
-    // UI methods
+    // UI methods, continued
 
     public void restartUI() {
         if (pomodoroTimer != null) {
+            Log.i("SHINOGI","Timer cancelled.");
             pomodoroTimer.cancel();
         }
-        Log.i("SHINOGI","UI initialized");
+        Log.i("SHINOGI","UI restarted.");
         txtStatus.setText(R.string.intro_message);
-        txtTimer.setText(pomodoroTimer.getTimeString(STUDY_TIME_SEC));
+        txtTimer.setTextColor(getResources().getColor(R.color.text_white));
+        txtTimer.setText(PomodoroTimer.getTimeString(STUDY_TIME_SEC));
         btnPause.setText(R.string.pause_message);
         btnBeginBreak.setText(R.string.begin_break_message);
         btnSession.setText(R.string.begin_session_message);
@@ -163,13 +248,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void updateTimerUI() {
-        msRemaining = pomodoroTimer.getMsRemaining();
+        Log.i("SHINOGI","Updating Timer UI.");
         long secRemaining = msRemaining / 1000;
-        txtTimer.setText(pomodoroTimer.getTimeString(secRemaining));
-        txtTimeElapsed.setText(pomodoroTimer.getTimeString(secElapsed));
+        txtTimer.setText(PomodoroTimer.getTimeString(secRemaining));
+        txtTimeElapsed.setText(PomodoroTimer.getTimeString(secElapsed));
     }
 
     public void changeButtonUI(Button b, boolean enabled, int color) {
+        Log.i("SHINOGI","Changing Button UI.");
         if (enabled) {
             b.setTextColor(getResources().getColor(R.color.text_white));
             b.setBackgroundColor(getResources().getColor(color));
@@ -182,6 +268,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void updateStatusUI() {
+        Log.i("SHINOGI","Switching button availability :" + isBreakActive);
         if (!isBreakActive) {
             changeButtonUI(btnBeginBreak,false,R.color.pomodoro_orange);
             changeButtonUI(btnBeginStudying,true,R.color.pomodoro_teal);
@@ -195,29 +282,38 @@ public class MainActivity extends AppCompatActivity {
 
     // Timer + Button Methods
 
-    public void startTimer(long TIME_IN_MS) {
-        // Log.i("SHINOGI","Starting Timer in Main Activity.");
+    public void createTimer(long TIME_IN_MS) {
+        Log.i("SHINOGI","Creating Timer.");
         pomodoroTimer = new PomodoroTimer(TIME_IN_MS,1000) {
             @Override
             public void onTick(long timeInMS) {
                 super.onTick(timeInMS);
+                msRemaining = timeInMS;
                 if (!isBreakActive) { secElapsed++; }
                 updateTimerUI();
             }
 
             @Override
             public void onFinish() {
+                Log.i("SHINOGI","Timer has finished.");
                 super.onFinish();
                 if (!isBreakActive) { numPomodoros++; }
                 isBreakActive = !isBreakActive;
                 updateStatusUI();
             }
         };
-        pomodoroTimer.start();
+    }
+
+    public void startTimer() {
+        isPauseActive = false;
+        Log.i("SHINOGI","Starting timer.");
+        if (pomodoroTimer != null) {
+            pomodoroTimer.start();
+        }
     }
 
     public void beginSession(View v) {
-        // Log.i("SHINOGI","Begin Session pressed.");
+        Log.i("SHINOGI","Begin Session pressed.");
         if (isSessionActive) {
             restartUI();
         } else {
@@ -228,42 +324,46 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void pauseResumeTimer(View v) {
-        // Log.i("SHINOGI","Pause button pressed.");
+        Log.i("SHINOGI","Pause button pressed: " + isPauseActive);
         System.out.println("Beginning: " + isPauseActive);
-        if (!isPauseActive) {
+        if (!isPauseActive) { // pause not on, so it pauses for you
             msRemaining = pomodoroTimer.getMsRemaining();
             pomodoroTimer.cancel();
             if (!isBreakActive) { secElapsed--; }
 
             txtTimer.setTextColor(getResources().getColor(R.color.text_yellow));
             btnPause.setText(R.string.resume_message);
+            isPauseActive = !isPauseActive;
         } else {
-            startTimer(msRemaining); // startTimer requires time in ms
+            createTimer(msRemaining); // startTimer requires time in ms
+            startTimer();
             txtTimer.setTextColor(getResources().getColor(R.color.text_white));
             btnPause.setText(R.string.pause_message);
         }
-        isPauseActive = !isPauseActive;
         System.out.println("Here: " + isPauseActive);
     }
 
     public void beginStudying(View v) {
-        // Log.i("SHINOGI","Begin studying button pressed.");
-        startTimer(STUDY_TIME_MS);
+        Log.i("SHINOGI","Begin studying button pressed.");
+        msRemaining = STUDY_TIME_MS; // TODO: just added
+        createTimer(msRemaining); // TODO: below this is potentially redundant, call restoreStudying
+        startTimer();
         txtStatus.setText(R.string.study_time_message);
         changeButtonUI(btnBeginStudying,false,R.color.pomodoro_teal);
         changeButtonUI(btnPause,true,R.color.pomodoro_red);
     }
 
     public void beginBreak(View v) {
-        // Log.i("SHINOGI","Begin break button pressed.");
+        Log.i("SHINOGI","Begin break button pressed.");
         if (numPomodoros % 4 == 0) {
-            startTimer(LONG_BREAK_TIME_MS);
+            createTimer(LONG_BREAK_TIME_MS);
             txtStatus.setText(R.string.long_break_time_message);
-        } else {
-            startTimer(BREAK_TIME_MS);
-            txtStatus.setText(R.string.break_time_message);
             btnBeginBreak.setText(R.string.begin_break_message);
+        } else {
+            createTimer(BREAK_TIME_MS);
+            txtStatus.setText(R.string.break_time_message);
         }
+        startTimer();
         changeButtonUI(btnBeginBreak,false,R.color.pomodoro_orange);
         changeButtonUI(btnPause,true,R.color.pomodoro_red);
     }
