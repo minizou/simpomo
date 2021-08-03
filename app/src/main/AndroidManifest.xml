@@ -3,6 +3,8 @@
     package="mini.pomodoro_alpha">
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <application
+        android:orientation="vertical"
+        android:keepScreenOn="true"
         android:name=".App"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"

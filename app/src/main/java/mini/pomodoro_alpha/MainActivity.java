@@ -7,11 +7,25 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.content.pm.ActivityInfo;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.TextView;
+
+/** TODO:
+ * - Consider using WakefulBroadcastReceiver or WAKE-LOCK so that service runs and is received while
+ *   phone is asleep / timed out (current issue is broadcastreceiver does not run during timeout)
+ * - Need to resolve what to do when timer runs to 00:00 in service.
+ * - Need to add notification noise at 00:00 in Main Activity
+ *
+ * Relevant links to explore for next time:
+ * https://developer.android.com/training/scheduling/wakelock
+ * https://developer.android.com/reference/android/content/BroadcastReceiver
+ * https://stackoverflow.com/questions/44149921/broadcast-receiver-not-working-when-app-is-closed
+ */
 
 public class MainActivity extends AppCompatActivity {
     private PomodoroTimer pomodoroTimer;
@@ -33,16 +47,19 @@ public class MainActivity extends AppCompatActivity {
     private long msRemaining;
     private long secElapsed;
 
-    private final long STUDY_TIME_MS = 1 * 10 * 1000;
+    private final long STUDY_TIME_MS = 25 * 60 * 1000;
     private final long STUDY_TIME_SEC = STUDY_TIME_MS / 1000;
-    private final long BREAK_TIME_MS = 1 * 5 * 1000;
-    private final long LONG_BREAK_TIME_MS = 1 * 7 * 1000;
+    private final long BREAK_TIME_MS = 5 * 60 * 1000;
+    private final long LONG_BREAK_TIME_MS = 15 * 60 * 1000;
 
     // Inherited Methods
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        this.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         Log.i("SHINOGI","OnCreate (MAIN)");
 
@@ -65,8 +82,11 @@ public class MainActivity extends AppCompatActivity {
                 msRemaining = intent.getLongExtra("timeRemaining",msRemaining);
                 isPauseActive = intent.getBooleanExtra("isPauseActive",isPauseActive);
                 isBreakActive = intent.getBooleanExtra("isBreakActive",isBreakActive);
+                numPomodoros = intent.getIntExtra("numPomodoros",numPomodoros);
+                secElapsed = intent.getLongExtra("secElapsed",secElapsed);
                 saveServiceData();
-                Log.i("SHINOGI","Broadcast received by Main Activity: " + msRemaining);
+                long deleteLater = msRemaining / 1000; // TODO
+                Log.i("SHINOGI","Broadcast received by Main Activity: " + deleteLater);
             }
         };
 
@@ -86,6 +106,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         Log.i("SHINOGI","onResume (MAIN)");
+        Log.i("SHINOGI","Resuming # of numPomodoros: " + numPomodoros);
         if (isSessionActive) {
             stopPomodoroService();
             Log.i("SHINOGI","Broadcast Receiver UNREGISTERED.");
@@ -93,6 +114,11 @@ public class MainActivity extends AppCompatActivity {
                 unregisterReceiver(broadcastReceiver);
             } catch (Exception e) { }
             Log.i("SHINOGI","Restoring session.");
+
+            if (!isPauseActive) {
+                Log.i("MISHIMA","onResume, secElapsed--");
+                secElapsed--;
+            }
         }
         if (msRemaining != 0) {
             restoreSession(); // TODO: new, fixme so that it's not just for msRemaining = 0
@@ -183,8 +209,10 @@ public class MainActivity extends AppCompatActivity {
         Intent intentPomodoroService = new Intent(this,PomodoroService.class);
         intentPomodoroService.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT); // FIXME: prevents multiple duplicates of service?
         intentPomodoroService.putExtra("msRemaining",pomodoroTimer.getMsRemaining());
+        intentPomodoroService.putExtra("secElapsed",secElapsed);
         intentPomodoroService.putExtra("isPauseActive",isPauseActive);
         intentPomodoroService.putExtra("isBreakActive",isBreakActive);
+        intentPomodoroService.putExtra("numPomodoros",numPomodoros);
         startService(intentPomodoroService);
 
     }
@@ -196,7 +224,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void saveServiceData() {
-        Log.i("SHINOGI","saveServiceData (MAIN)");
+        // Log.i("SHINOGI","saveServiceData (MAIN)");
         SharedPreferences.Editor editor = sharedPreferences.edit();
         if (isSessionActive) {
             Log.i("SHINOGI","Shared data applied: " + msRemaining + " | " + isPauseActive + " | " + isBreakActive);
@@ -207,8 +235,11 @@ public class MainActivity extends AppCompatActivity {
             Log.i("SHINOGI","Clearing data: " +  msRemaining + " | " + isPauseActive + " | " + isBreakActive);
         }
         editor.putLong("msRemaining",msRemaining);
+        editor.putLong("secElapsed",secElapsed);
         editor.putBoolean("isPauseActive",isPauseActive);
         editor.putBoolean("isBreakActive",isBreakActive);
+        editor.putInt("numPomodoros",numPomodoros);
+
         editor.apply();
     }
 
@@ -217,11 +248,15 @@ public class MainActivity extends AppCompatActivity {
         Log.i("SHINOGI","Attempting to retrieve service data.");
         if (sharedPreferences != null) {
             msRemaining = sharedPreferences.getLong("msRemaining",msRemaining);
+            secElapsed = sharedPreferences.getLong("secElapsed",secElapsed);
             isPauseActive = sharedPreferences.getBoolean("isPauseActive",isPauseActive);
             isBreakActive = sharedPreferences.getBoolean("isBreakActive",isBreakActive);
+            numPomodoros = sharedPreferences.getInt("numPomodoros",numPomodoros);
             Log.i("SHINOGI","Service data obtained: " + msRemaining);
         } else { // FIXME: check [else] if it is redundant
             msRemaining = 0;
+            numPomodoros = 0;
+            secElapsed = 0;
             isBreakActive = false;
             isPauseActive = false;
         }
@@ -238,6 +273,7 @@ public class MainActivity extends AppCompatActivity {
         txtStatus.setText(R.string.intro_message);
         txtTimer.setTextColor(getResources().getColor(R.color.text_white));
         txtTimer.setText(PomodoroTimer.getTimeString(STUDY_TIME_SEC));
+        txtTimeElapsed.setText(PomodoroTimer.getTimeString(secElapsed));
         btnPause.setText(R.string.pause_message);
         btnBeginBreak.setText(R.string.begin_break_message);
         btnSession.setText(R.string.begin_session_message);
@@ -289,7 +325,10 @@ public class MainActivity extends AppCompatActivity {
             public void onTick(long timeInMS) {
                 super.onTick(timeInMS);
                 msRemaining = timeInMS;
-                if (!isBreakActive) { secElapsed++; }
+                if (!isBreakActive) {
+                    Log.i("MISHIMA","createTimer, secElapsed++: " + secElapsed);
+                    secElapsed++;
+                }
                 updateTimerUI();
             }
 
@@ -315,6 +354,8 @@ public class MainActivity extends AppCompatActivity {
     public void beginSession(View v) {
         Log.i("SHINOGI","Begin Session pressed.");
         if (isSessionActive) {
+            numPomodoros = 0;
+            secElapsed = 0;
             restartUI();
         } else {
             btnSession.setText(R.string.end_session_message);
@@ -329,7 +370,10 @@ public class MainActivity extends AppCompatActivity {
         if (!isPauseActive) { // pause not on, so it pauses for you
             msRemaining = pomodoroTimer.getMsRemaining();
             pomodoroTimer.cancel();
-            if (!isBreakActive) { secElapsed--; }
+            if (!isBreakActive) {
+                Log.i("MISHIMA","pauseResumeTimer, secElapsed--");
+                secElapsed--;
+            }
 
             txtTimer.setTextColor(getResources().getColor(R.color.text_yellow));
             btnPause.setText(R.string.resume_message);
