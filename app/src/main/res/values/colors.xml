@@ -4,6 +4,7 @@
     <color name="pomodoro_teal">#009688</color>
     <color name="pomodoro_orange">#FF9800</color>
     <color name="pomodoro_green">#8BC34A</color>
+    <color name="pomodoro_pink">#D81B60</color>
     <color name="background_grey">#2B2B2B</color>
     <color name="background_lighter_grey">#313335</color>
     <color name="text_darker_grey">#53575A</color>

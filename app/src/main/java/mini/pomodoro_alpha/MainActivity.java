@@ -8,7 +8,11 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
+import android.media.Ringtone;
+import android.media.RingtoneManager;
+import android.net.Uri;
 import android.os.Bundle;
+import android.os.PowerManager;
 import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
@@ -28,18 +32,25 @@ import android.widget.TextView;
  */
 
 public class MainActivity extends AppCompatActivity {
+    // Functionality Objects
+    private BroadcastReceiver broadcastReceiver;
+    private PowerManager powerManager;
+    private PowerManager.WakeLock wakeLock;
     private PomodoroTimer pomodoroTimer;
-    BroadcastReceiver broadcastReceiver;
-    SharedPreferences sharedPreferences;
+    private Ringtone ringtone;
+    private SharedPreferences sharedPreferences;
 
-    private TextView txtTimer;
-    private TextView txtStatus;
+    // UI Objects
     private Button btnSession;
-    private Button txtTimeElapsed;
     private Button btnBeginStudying;
     private Button btnBeginBreak;
     private Button btnPause;
+    private Button btnStopAlarm;
+    private Button txtTimeElapsed;
+    private TextView txtTimer;
+    private TextView txtStatus;
 
+    // Session Data
     private boolean isBreakActive;
     private boolean isPauseActive;
     private boolean isSessionActive;
@@ -47,6 +58,7 @@ public class MainActivity extends AppCompatActivity {
     private long msRemaining;
     private long secElapsed;
 
+    // Constants
     private final long STUDY_TIME_MS = 25 * 60 * 1000;
     private final long STUDY_TIME_SEC = STUDY_TIME_MS / 1000;
     private final long BREAK_TIME_MS = 5 * 60 * 1000;
@@ -59,19 +71,17 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         this.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
-        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-
-        Log.i("SHINOGI","OnCreate (MAIN)");
 
         // initializing UI objects
-        txtTimer = findViewById(R.id.txt_timer);
-        txtTimeElapsed = findViewById(R.id.txt_time_elapsed);
-        txtStatus = findViewById(R.id.txt_status);
+        sharedPreferences = getPreferences(MODE_PRIVATE);
         btnBeginStudying = findViewById(R.id.btn_begin_studying);
         btnBeginBreak = findViewById(R.id.btn_begin_break);
         btnPause = findViewById(R.id.btn_pause);
         btnSession = findViewById(R.id.btn_session);
-        sharedPreferences = getPreferences(MODE_PRIVATE);
+        btnStopAlarm = findViewById(R.id.btn_stop_alarm);
+        txtTimer = findViewById(R.id.txt_timer);
+        txtTimeElapsed = findViewById(R.id.txt_time_elapsed);
+        txtStatus = findViewById(R.id.txt_status);
 
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction("Counter");
@@ -85,56 +95,46 @@ public class MainActivity extends AppCompatActivity {
                 numPomodoros = intent.getIntExtra("numPomodoros",numPomodoros);
                 secElapsed = intent.getLongExtra("secElapsed",secElapsed);
                 saveServiceData();
-                long deleteLater = msRemaining / 1000; // TODO
-                Log.i("SHINOGI","Broadcast received by Main Activity: " + deleteLater);
             }
         };
 
-        Log.i("SHINOGI","Broadcast Receiver REGISTERED.");
         registerReceiver(broadcastReceiver, intentFilter);
 
         restartUI();
-
-        try {
-            stopService(new Intent(MainActivity.this, PomodoroService.class));
-        } catch (Exception e) { }
-
+        stopPomodoroService();
         getServiceData();
-        Log.i("SHINOGI","OnCreate MSREMAINING: " + msRemaining);
     }
 
     @Override
     protected void onResume() {
-        Log.i("SHINOGI","onResume (MAIN)");
-        Log.i("SHINOGI","Resuming # of numPomodoros: " + numPomodoros);
         if (isSessionActive) {
             stopPomodoroService();
-            Log.i("SHINOGI","Broadcast Receiver UNREGISTERED.");
             try {
                 unregisterReceiver(broadcastReceiver);
             } catch (Exception e) { }
-            Log.i("SHINOGI","Restoring session.");
-
-            if (!isPauseActive) {
-                Log.i("MISHIMA","onResume, secElapsed--");
-                secElapsed--;
-            }
+            if (!isPauseActive) { secElapsed--; } // #fixlater --> replacing secElapsed with Initial Amount - secRemaining
         }
+
         if (msRemaining != 0) {
             restoreSession(); // TODO: new, fixme so that it's not just for msRemaining = 0
         }
-        Log.i("SHINOGI","isPauseActive (onResume): " + isPauseActive);
-        if (isPauseActive && !isBreakActive) { // TODO: fixme, new
-            secElapsed++;
+
+        if (isPauseActive && !isBreakActive) {
+            secElapsed++; // #fixlater
         }
+
+        if (wakeLock != null) {
+            wakeLock.release();
+        }
+
         super.onResume();
     }
 
     @Override
     protected void onPause() {
-        Log.i("SHINOGI","onPause (MAIN)");
         if (isSessionActive) {
             startPomodoroService();
+            turnOnWakeLock();
         }
         saveServiceData();
         super.onPause();
@@ -142,50 +142,33 @@ public class MainActivity extends AppCompatActivity {
 
     // Other Methods
 
+    public void turnOnWakeLock() {
+        powerManager = (PowerManager) getSystemService(POWER_SERVICE);
+        wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
+                "MyApp::MyWakelockTag");
+        wakeLock.acquire(msRemaining);
+    }
+
     public void restoreSession() {
-        Log.i("SHINOGI","Restoring session (MAIN).");
-        Log.i("SHINOGI","Session details: " + msRemaining + " " + isPauseActive);
-        Log.i("SHINOGI","Details x2: " + isSessionActive + " " + isBreakActive);
         isSessionActive = true;
         btnSession.setText(R.string.end_session_message);
         updateTimerUI();
-        // FIXME: pass whether break is active or not
+
+        createTimer(msRemaining);
+        changeButtonUI(btnPause,true,R.color.pomodoro_red);
+
         if (isBreakActive) {
-            restoreBreak();
+            if (numPomodoros % 4 == 0) {
+                txtStatus.setText(R.string.long_break_time_message);
+            } else {
+                txtStatus.setText(R.string.break_time_message);
+                btnBeginBreak.setText(R.string.begin_break_message);
+            }
+            changeButtonUI(btnBeginBreak,false,R.color.pomodoro_orange);
         } else {
-            restoreStudying();
+            txtStatus.setText(R.string.study_time_message);
+            changeButtonUI(btnBeginStudying,false,R.color.pomodoro_teal);
         }
-    }
-
-    public void restoreStudying() {
-        Log.i("SHINOGI","RestoreStudying (MAIN)");
-        createTimer(msRemaining);
-        txtStatus.setText(R.string.study_time_message);
-        changeButtonUI(btnBeginStudying,false,R.color.pomodoro_teal);
-        changeButtonUI(btnPause,true,R.color.pomodoro_red);
-
-        Log.i("SHINOGI","isPauseActive: " + isPauseActive);
-        if (!isPauseActive) {
-            startTimer();
-        } else {
-            isPauseActive = false;
-            pauseResumeTimer(btnPause);
-        }
-
-
-    } // TODO: combine with restoreBreak?
-
-    public void restoreBreak() {
-        Log.i("SHINOGI","restoreBreak (MAIN)");
-        createTimer(msRemaining);
-        if (numPomodoros % 4 == 0) {
-            txtStatus.setText(R.string.long_break_time_message);
-        } else {
-            txtStatus.setText(R.string.break_time_message);
-            btnBeginBreak.setText(R.string.begin_break_message);
-        }
-        changeButtonUI(btnBeginBreak,false,R.color.pomodoro_orange);
-        changeButtonUI(btnPause,true,R.color.pomodoro_red);
 
         if (!isPauseActive) {
             startTimer();
@@ -194,7 +177,6 @@ public class MainActivity extends AppCompatActivity {
             pauseResumeTimer(btnPause);
         }
     }
-
 
     // Service Methods
 
@@ -219,8 +201,10 @@ public class MainActivity extends AppCompatActivity {
 
     private void stopPomodoroService() {
         Log.i("SHINOGI","stopPomodoroService (MAIN)");
-        Intent intentPomodoroServiceStop = new Intent(this,PomodoroService.class);
-        stopService(intentPomodoroServiceStop);
+        try {
+            Intent intentPomodoroServiceStop = new Intent(this,PomodoroService.class);
+            stopService(intentPomodoroServiceStop);
+        } catch (Exception e) { }
     }
 
     private void saveServiceData() {
@@ -281,6 +265,7 @@ public class MainActivity extends AppCompatActivity {
         changeButtonUI(btnBeginStudying,false,R.color.pomodoro_teal);
         changeButtonUI(btnBeginBreak,false,R.color.pomodoro_orange);
         changeButtonUI(btnPause,false,R.color.pomodoro_red);
+        changeButtonUI(btnStopAlarm,false,R.color.pomodoro_green);
     }
 
     public void updateTimerUI() {
@@ -339,6 +324,7 @@ public class MainActivity extends AppCompatActivity {
                 if (!isBreakActive) { numPomodoros++; }
                 isBreakActive = !isBreakActive;
                 updateStatusUI();
+                // startAlarm(); TODO
             }
         };
     }
@@ -411,4 +397,25 @@ public class MainActivity extends AppCompatActivity {
         changeButtonUI(btnBeginBreak,false,R.color.pomodoro_orange);
         changeButtonUI(btnPause,true,R.color.pomodoro_red);
     }
+
+    // Sound Methods
+
+    /*
+    public void stopAlarmSound(View v) {
+        ringtone.stop();
+
+        changeButtonUI(btnStopAlarm,false,R.color.pomodoro_green);
+    }
+
+    public void startAlarm() {
+        Log.i("KEIJI","SERVICE createAlarmSound: " + secElapsed);
+        Uri alert = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
+        if (alert == null) { alert =
+                RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION); }
+        ringtone = RingtoneManager.getRingtone(getApplicationContext(), alert);
+        ringtone.play();
+
+        changeButtonUI(btnStopAlarm,true,R.color.pomodoro_green);
+    }
+     */
 }

@@ -84,6 +84,13 @@ public class PomodoroService extends Service {
             @Override
             public void onFinish() {
                 Log.i("KEIJI","SERVICE onFinish: " + secElapsed);
+                String message = "Timer finished. ";
+                if (isBreakActive) {
+                    message += "Study time!";
+                } else {
+                    message += "Break time!";
+                }
+                updateNotification(message);
                 super.onFinish();
                 createAlarmSound();
             }

@@ -1,6 +1,6 @@
 <resources>
     <string name="app_name">Pomodoro_Alpha</string>
-    <string name="intro_message">[Click \'Begin Session\' to begin studying!]</string>
+    <string name="intro_message">[Click above to begin studying!]</string>
     <string name="pause_message">Pause</string>
     <string name="begin_break_message">Begin Break</string>
     <string name="begin_session_message">Begin Session</string>
