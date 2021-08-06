@@ -11,8 +11,11 @@ import android.content.pm.ActivityInfo;
 import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.PowerManager;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
 import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
@@ -39,6 +42,7 @@ public class MainActivity extends AppCompatActivity {
     private PomodoroTimer pomodoroTimer;
     private Ringtone ringtone;
     private SharedPreferences sharedPreferences;
+    private IntentFilter intentFilter;
 
     // UI Objects
     private Button btnSession;
@@ -55,22 +59,34 @@ public class MainActivity extends AppCompatActivity {
     private boolean isPauseActive;
     private boolean isSessionActive;
     private int numPomodoros;
+    private long initialMsRemaining;
     private long msRemaining;
-    private long secElapsed;
+    private long msElapsed;
+    private long msElapsedTotal;
 
     // Constants
-    private final long STUDY_TIME_MS = 25 * 60 * 1000;
+    private final long STUDY_TIME_MS = 5 * 1 * 1000;
     private final long STUDY_TIME_SEC = STUDY_TIME_MS / 1000;
-    private final long BREAK_TIME_MS = 5 * 60 * 1000;
-    private final long LONG_BREAK_TIME_MS = 15 * 60 * 1000;
+    private final long BREAK_TIME_MS = 3 * 1 * 1000;
+    private final long LONG_BREAK_TIME_MS = 10 * 1 * 1000;
 
     // Inherited Methods
+
+    private void deleteLater() {
+        long test = msRemaining / 1000;
+        long test2 = msElapsed / 1000;
+        // Log.i("deleteLater","msRemaining: " + msRemaining + " | " + test);
+        // Log.i("deleteLater","msElapsed: " + msElapsed+ " | " + test2);
+        // Log.i("deleteLater","initialMsRemaining: " + initialMsRemaining + " | " + initialMsRemaining);
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         this.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+
+        deleteLater();
 
         // initializing UI objects
         sharedPreferences = getPreferences(MODE_PRIVATE);
@@ -83,22 +99,22 @@ public class MainActivity extends AppCompatActivity {
         txtTimeElapsed = findViewById(R.id.txt_time_elapsed);
         txtStatus = findViewById(R.id.txt_status);
 
-        IntentFilter intentFilter = new IntentFilter();
+        intentFilter = new IntentFilter();
         intentFilter.addAction("Counter");
 
         broadcastReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
                 msRemaining = intent.getLongExtra("timeRemaining",msRemaining);
+                isSessionActive = intent.getBooleanExtra("isSessionActive",isSessionActive);
                 isPauseActive = intent.getBooleanExtra("isPauseActive",isPauseActive);
                 isBreakActive = intent.getBooleanExtra("isBreakActive",isBreakActive);
                 numPomodoros = intent.getIntExtra("numPomodoros",numPomodoros);
-                secElapsed = intent.getLongExtra("secElapsed",secElapsed);
+                msElapsed = intent.getLongExtra("msElapsed",msElapsed);
                 saveServiceData();
+                Log.i("deleteLater","Receiving broadcast: " + msRemaining + " | " + msElapsed);
             }
         };
-
-        registerReceiver(broadcastReceiver, intentFilter);
 
         restartUI();
         stopPomodoroService();
@@ -107,20 +123,21 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onResume() {
+        Log.i("deleteLater","onResume: " + isSessionActive + " | msRemaining: " + msRemaining);
         if (isSessionActive) {
             stopPomodoroService();
-            try {
-                unregisterReceiver(broadcastReceiver);
-            } catch (Exception e) { }
-            if (!isPauseActive) { secElapsed--; } // #fixlater --> replacing secElapsed with Initial Amount - secRemaining
-        }
-
-        if (msRemaining != 0) {
-            restoreSession(); // TODO: new, fixme so that it's not just for msRemaining = 0
-        }
-
-        if (isPauseActive && !isBreakActive) {
-            secElapsed++; // #fixlater
+            if (msRemaining >= 1000) {
+                restoreSession(); // TODO: new, fixme so that it's not just for msRemaining = 0
+            } else { // TODO
+                if (isBreakActive) {
+                    changeButtonUI(btnBeginBreak,true,R.color.pomodoro_orange);
+                    changeButtonUI(btnBeginStudying,false,R.color.pomodoro_teal);
+                } else {
+                    changeButtonUI(btnBeginBreak,false,R.color.pomodoro_orange);
+                    changeButtonUI(btnBeginStudying,true,R.color.pomodoro_teal);
+                }
+                changeButtonUI(btnPause,false,R.color.pomodoro_red);
+            }
         }
 
         if (wakeLock != null) {
@@ -181,26 +198,23 @@ public class MainActivity extends AppCompatActivity {
     // Service Methods
 
     private void startPomodoroService() {
-        Log.i("SHINOGI","startPomodoroService() (MAIN)");
-
         if (pomodoroTimer != null) { // TODO: new, added to fix timer running as service ran
-            Log.i("SHINOGI","Cancelled timer in startPomodoroService");
             pomodoroTimer.cancel();
         }
 
         Intent intentPomodoroService = new Intent(this,PomodoroService.class);
         intentPomodoroService.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT); // FIXME: prevents multiple duplicates of service?
         intentPomodoroService.putExtra("msRemaining",pomodoroTimer.getMsRemaining());
-        intentPomodoroService.putExtra("secElapsed",secElapsed);
+        intentPomodoroService.putExtra("msElapsed",msElapsed);
         intentPomodoroService.putExtra("isPauseActive",isPauseActive);
         intentPomodoroService.putExtra("isBreakActive",isBreakActive);
         intentPomodoroService.putExtra("numPomodoros",numPomodoros);
+        intentPomodoroService.putExtra("isSessionActive",isSessionActive); // FIXME redundant
         startService(intentPomodoroService);
 
     }
 
     private void stopPomodoroService() {
-        Log.i("SHINOGI","stopPomodoroService (MAIN)");
         try {
             Intent intentPomodoroServiceStop = new Intent(this,PomodoroService.class);
             stopService(intentPomodoroServiceStop);
@@ -208,18 +222,15 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void saveServiceData() {
-        // Log.i("SHINOGI","saveServiceData (MAIN)");
         SharedPreferences.Editor editor = sharedPreferences.edit();
-        if (isSessionActive) {
-            Log.i("SHINOGI","Shared data applied: " + msRemaining + " | " + isPauseActive + " | " + isBreakActive);
-        } else {
+        if (!isSessionActive) {
             msRemaining = 0;
             isPauseActive = false;
             isBreakActive = false;
-            Log.i("SHINOGI","Clearing data: " +  msRemaining + " | " + isPauseActive + " | " + isBreakActive);
         }
+        editor.putBoolean("isSessionActive",isSessionActive);
         editor.putLong("msRemaining",msRemaining);
-        editor.putLong("secElapsed",secElapsed);
+        editor.putLong("msElapsed",msElapsed);
         editor.putBoolean("isPauseActive",isPauseActive);
         editor.putBoolean("isBreakActive",isBreakActive);
         editor.putInt("numPomodoros",numPomodoros);
@@ -228,20 +239,19 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void getServiceData() {
-        Log.i("SHINOGI","getServiceData() (MAIN)");
-        Log.i("SHINOGI","Attempting to retrieve service data.");
         if (sharedPreferences != null) {
+            isSessionActive = sharedPreferences.getBoolean("isSessionActive",isSessionActive);
             msRemaining = sharedPreferences.getLong("msRemaining",msRemaining);
-            secElapsed = sharedPreferences.getLong("secElapsed",secElapsed);
+            msElapsed = sharedPreferences.getLong("msElapsed",msElapsed);
             isPauseActive = sharedPreferences.getBoolean("isPauseActive",isPauseActive);
             isBreakActive = sharedPreferences.getBoolean("isBreakActive",isBreakActive);
             numPomodoros = sharedPreferences.getInt("numPomodoros",numPomodoros);
-            Log.i("SHINOGI","Service data obtained: " + msRemaining);
         } else { // FIXME: check [else] if it is redundant
             msRemaining = 0;
             numPomodoros = 0;
-            secElapsed = 0;
+            msElapsed = 0;
             isBreakActive = false;
+            isSessionActive = false;
             isPauseActive = false;
         }
     }
@@ -250,14 +260,12 @@ public class MainActivity extends AppCompatActivity {
 
     public void restartUI() {
         if (pomodoroTimer != null) {
-            Log.i("SHINOGI","Timer cancelled.");
             pomodoroTimer.cancel();
         }
-        Log.i("SHINOGI","UI restarted.");
         txtStatus.setText(R.string.intro_message);
         txtTimer.setTextColor(getResources().getColor(R.color.text_white));
         txtTimer.setText(PomodoroTimer.getTimeString(STUDY_TIME_SEC));
-        txtTimeElapsed.setText(PomodoroTimer.getTimeString(secElapsed));
+        txtTimeElapsed.setText(PomodoroTimer.getTimeString(msElapsed / 1000));
         btnPause.setText(R.string.pause_message);
         btnBeginBreak.setText(R.string.begin_break_message);
         btnSession.setText(R.string.begin_session_message);
@@ -269,14 +277,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void updateTimerUI() {
-        Log.i("SHINOGI","Updating Timer UI.");
         long secRemaining = msRemaining / 1000;
         txtTimer.setText(PomodoroTimer.getTimeString(secRemaining));
-        txtTimeElapsed.setText(PomodoroTimer.getTimeString(secElapsed));
+        txtTimeElapsed.setText(PomodoroTimer.getTimeString(msElapsed / 1000));
     }
 
     public void changeButtonUI(Button b, boolean enabled, int color) {
-        Log.i("SHINOGI","Changing Button UI.");
         if (enabled) {
             b.setTextColor(getResources().getColor(R.color.text_white));
             b.setBackgroundColor(getResources().getColor(color));
@@ -289,7 +295,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void updateStatusUI() {
-        Log.i("SHINOGI","Switching button availability :" + isBreakActive);
         if (!isBreakActive) {
             changeButtonUI(btnBeginBreak,false,R.color.pomodoro_orange);
             changeButtonUI(btnBeginStudying,true,R.color.pomodoro_teal);
@@ -304,44 +309,48 @@ public class MainActivity extends AppCompatActivity {
     // Timer + Button Methods
 
     public void createTimer(long TIME_IN_MS) {
-        Log.i("SHINOGI","Creating Timer.");
+        deleteLater();
+
+        initialMsRemaining = TIME_IN_MS;
         pomodoroTimer = new PomodoroTimer(TIME_IN_MS,1000) {
             @Override
             public void onTick(long timeInMS) {
                 super.onTick(timeInMS);
                 msRemaining = timeInMS;
                 if (!isBreakActive) {
-                    Log.i("MISHIMA","createTimer, secElapsed++: " + secElapsed);
-                    secElapsed++;
+                    msElapsed += (initialMsRemaining - msRemaining);
                 }
+                initialMsRemaining = msRemaining;
                 updateTimerUI();
+                deleteLater();
             }
-
             @Override
             public void onFinish() {
-                Log.i("SHINOGI","Timer has finished.");
-                super.onFinish();
-                if (!isBreakActive) { numPomodoros++; }
+                if (!isBreakActive) {
+                    msElapsedTotal += msElapsed;
+                    numPomodoros++;
+                }
                 isBreakActive = !isBreakActive;
+
                 updateStatusUI();
                 // startAlarm(); TODO
+
+                super.onFinish();
             }
         };
     }
 
     public void startTimer() {
         isPauseActive = false;
-        Log.i("SHINOGI","Starting timer.");
         if (pomodoroTimer != null) {
             pomodoroTimer.start();
         }
     }
 
     public void beginSession(View v) {
-        Log.i("SHINOGI","Begin Session pressed.");
         if (isSessionActive) {
             numPomodoros = 0;
-            secElapsed = 0;
+            msElapsed = 0;
             restartUI();
         } else {
             btnSession.setText(R.string.end_session_message);
@@ -351,16 +360,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void pauseResumeTimer(View v) {
-        Log.i("SHINOGI","Pause button pressed: " + isPauseActive);
-        System.out.println("Beginning: " + isPauseActive);
         if (!isPauseActive) { // pause not on, so it pauses for you
             msRemaining = pomodoroTimer.getMsRemaining();
+            if (!isBreakActive) { msElapsedTotal += msElapsed; }
             pomodoroTimer.cancel();
-            if (!isBreakActive) {
-                Log.i("MISHIMA","pauseResumeTimer, secElapsed--");
-                secElapsed--;
-            }
-
             txtTimer.setTextColor(getResources().getColor(R.color.text_yellow));
             btnPause.setText(R.string.resume_message);
             isPauseActive = !isPauseActive;
@@ -370,11 +373,9 @@ public class MainActivity extends AppCompatActivity {
             txtTimer.setTextColor(getResources().getColor(R.color.text_white));
             btnPause.setText(R.string.pause_message);
         }
-        System.out.println("Here: " + isPauseActive);
     }
 
     public void beginStudying(View v) {
-        Log.i("SHINOGI","Begin studying button pressed.");
         msRemaining = STUDY_TIME_MS; // TODO: just added
         createTimer(msRemaining); // TODO: below this is potentially redundant, call restoreStudying
         startTimer();
@@ -384,7 +385,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void beginBreak(View v) {
-        Log.i("SHINOGI","Begin break button pressed.");
         if (numPomodoros % 4 == 0) {
             createTimer(LONG_BREAK_TIME_MS);
             txtStatus.setText(R.string.long_break_time_message);
@@ -400,7 +400,6 @@ public class MainActivity extends AppCompatActivity {
 
     // Sound Methods
 
-    /*
     public void stopAlarmSound(View v) {
         ringtone.stop();
 
@@ -408,7 +407,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void startAlarm() {
-        Log.i("KEIJI","SERVICE createAlarmSound: " + secElapsed);
+
+        Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            v.vibrate(VibrationEffect.createOneShot(500, VibrationEffect.DEFAULT_AMPLITUDE));
+        } else {
+            v.vibrate(1000);
+        }
+
         Uri alert = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
         if (alert == null) { alert =
                 RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION); }
@@ -417,5 +423,4 @@ public class MainActivity extends AppCompatActivity {
 
         changeButtonUI(btnStopAlarm,true,R.color.pomodoro_green);
     }
-     */
 }

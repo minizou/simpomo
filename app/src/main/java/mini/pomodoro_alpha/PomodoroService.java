@@ -24,7 +24,7 @@ public class PomodoroService extends Service {
     private boolean isPauseActive;
     private boolean isBreakActive;
     private int numPomodoros;
-    private long secElapsed;
+    private long msElapsed;
 
     private final String ELAPSE_MESSAGE = " | ";
 
@@ -38,77 +38,63 @@ public class PomodoroService extends Service {
 
     @Override
     public void onCreate() {
-        Log.i("SHINOGI","Service created.");
-        Log.i("KEIJI","SERVICE onCreate: " + secElapsed);
         super.onCreate();
     }
 
     @Override
     public void onDestroy() {
-        Log.i("KEIJI","SERVICE onDestroy: " + secElapsed);
         super.onDestroy();
         timer.cancel();
-        // FIXME: DELETE 1 SEC RIGHT BEFORE LAST BROADCAST.
         if (ringtone != null && ringtone.isPlaying()) {
             ringtone.stop();
         }
-        Log.i("SHINOGI","Destroying service.");
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        Log.i("SHINOGI","OnStartCommand (SERVICE)");
-        Log.i("KEIJI","SERVICE onStartCommand: " + secElapsed);
         long timeRemainingInMS = intent.getLongExtra("msRemaining",0);
-        secElapsed = intent.getLongExtra("secElapsed",secElapsed);
+        msElapsed = intent.getLongExtra("msElapsed",msElapsed);
         String timeFromActivity = timer.getTimeString(timeRemainingInMS / 1000); // FIXME: get rid of these / 1000s
-        String timeSecElapsed = timer.getTimeString(secElapsed);
+        String timeSecElapsed = timer.getTimeString(msElapsed / 1000);
         String message = timeFromActivity + ELAPSE_MESSAGE + timeSecElapsed;
         startForeground(1, createNotification(message));
-        Log.i("KEIJI","SERVICE onStartCommand (notif initialized): " + secElapsed);
 
         timer = new PomodoroTimer(timeRemainingInMS,1000) {
+            long initialMsRemaining = timeRemainingInMS;
             @RequiresApi(api = Build.VERSION_CODES.O)
             @Override
             public void onTick(long timeInMS) {
                 super.onTick(timeInMS);
-                secElapsed++; // FIXME: secElapsed not correctly working
+                if (!isBreakActive) {
+                    msElapsed += (initialMsRemaining - timeInMS);
+                }
+                initialMsRemaining = timeInMS;
                 sendBroadcast();
                 updateNotification(getTimeString(timer.getMsRemaining() / 1000)
-                        + ELAPSE_MESSAGE + timer.getTimeString(secElapsed));
-                // updateNotification(getTimeString(timer.getMsRemaining() / 1000));
-                Log.i("SHINOGI","Sending broadcast: " + timer.getMsRemaining() + " | " + secElapsed);
-                // Log.i("KEIJI","SERVICE onTick: " + secElapsed);
+                        + ELAPSE_MESSAGE + timer.getTimeString(msElapsed / 1000));
             }
-
             @Override
             public void onFinish() {
-                Log.i("KEIJI","SERVICE onFinish: " + secElapsed);
                 String message = "Timer finished. ";
                 if (isBreakActive) {
                     message += "Study time!";
                 } else {
                     message += "Break time!";
                 }
+                sendBroadcast();
                 updateNotification(message);
                 super.onFinish();
                 createAlarmSound();
             }
         };
-        Log.i("KEIJI","SERVICE onStartCommand (timer initialized): " + secElapsed);
 
         numPomodoros = intent.getIntExtra("numPomodoros",0);
         isBreakActive = intent.getBooleanExtra("isBreakActive",false);
         isPauseActive = intent.getBooleanExtra("isPauseActive",false);
+
         if (!isPauseActive) {
             timer.start();
         }
-
-        Log.i("SHINOGI","Starting service and thus timer.");
-        Log.i("SHINOGI","Time remaining: " + timeRemainingInMS);
-
-        Log.i("MISHIMA","onStartCommand (SERVICE), secElapsed--: " + secElapsed);
-        secElapsed--; // FIXME: NEW
 
         return super.onStartCommand(intent, flags, startId);
     }
@@ -116,8 +102,6 @@ public class PomodoroService extends Service {
     // Notification Methods
 
     public Notification createNotification(String text) {
-        Log.i("KEIJI","SERVICE createNotification: " + secElapsed);
-        // Log.i("SHINOGI","Creating notification");
         Intent notificationIntent = new Intent(this, MainActivity.class);
         notificationIntent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
         PendingIntent pendingIntent = PendingIntent.getActivity(this,
@@ -132,29 +116,27 @@ public class PomodoroService extends Service {
     }
 
     public void updateNotification(String text) {
-        Log.i("KEIJI","SERVICE updateNotification: " + secElapsed);
         Notification notification = createNotification(text);
         NotificationManager notifManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         notifManager.notify(1, notification);
     }
 
     public void sendBroadcast() {
-        //Log.i("KEIJI","SERVICE sendBroadcast: " + secElapsed);
-        //Log.i("SHINOGI","Sending broadcast (SERVICE)");
+        Log.i("deleteLater","Sending broadcast: " + timer.getMsRemaining() + " | " + msElapsed);
         Intent intentLocal = new Intent();
         intentLocal.setAction("Counter");
+        intentLocal.putExtra("isSessionActive",true);
         intentLocal.putExtra("timeRemaining",timer.getMsRemaining());
         intentLocal.putExtra("isPauseActive",isPauseActive);
         intentLocal.putExtra("isBreakActive",isBreakActive);
         intentLocal.putExtra("numPomodoros",numPomodoros);
-        intentLocal.putExtra("secElapsed",secElapsed);
+        intentLocal.putExtra("msElapsed",msElapsed);
         sendBroadcast(intentLocal);
     }
 
     // Notification Sound Methods
 
     public void createAlarmSound() {
-        Log.i("KEIJI","SERVICE createAlarmSound: " + secElapsed);
         Uri alert = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
         if (alert == null) { alert =
                 RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION); }
