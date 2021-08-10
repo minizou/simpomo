@@ -1,14 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="pomodoro_red">#F44336</color>
-    <color name="pomodoro_teal">#009688</color>
-    <color name="pomodoro_orange">#FF9800</color>
-    <color name="pomodoro_green">#8BC34A</color>
-    <color name="pomodoro_pink">#D81B60</color>
-    <color name="background_grey">#2B2B2B</color>
-    <color name="background_lighter_grey">#313335</color>
-    <color name="text_darker_grey">#53575A</color>
-    <color name="text_grey">#BBBBBB</color>
-    <color name="text_yellow">#E8BF6A</color>
-    <color name="text_white">#FFFFFFFF</color>
+    <color name="red">#D32F2F</color>
+    <color name="orange">#FFA000</color>
+    <color name="teal">#00796B</color>
+    <color name="green">#388E3C</color>
+    <color name="purple">#7B1FA2</color>
+
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="light_yellow">#FFE288</color>
+    <color name="light_grey">#686868</color>
+    <color name="background_dark_grey">#252525</color>
+    <color name="background_grey">#333333</color>
+    <color name="background_lighter_grey">#4C4C4C</color>
 </resources>

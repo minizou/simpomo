@@ -1,21 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="mini.pomodoro_alpha">
-    <uses-permission android:name="android.permission.VIBRATE"/>
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    package="mini.pomodoro_delta">
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
     <application
         android:orientation="vertical"
-        android:keepScreenOn="true"
-        android:name=".App"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
-        android:label="SimPomo"
+        android:label="@string/app_name"
+        android:name=".App"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Pomodoro_Alpha">
-        <service android:name=".PomodoroService" android:launchMode = "singleInstance"> </service>
-        <activity android:name=".MainActivity">
+        android:theme="@style/Theme.PomodoroDelta">
+        <service
+            android:name=".TimerService"
+            android:enabled="true"
+            android:exported="true"></service>
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -23,4 +26,5 @@
             </intent-filter>
         </activity>
     </application>
+
 </manifest>

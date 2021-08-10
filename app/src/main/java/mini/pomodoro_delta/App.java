@@ -1,17 +1,15 @@
-package mini.pomodoro_alpha;
+package mini.pomodoro_delta;
 
 import android.app.Application;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.os.Build;
-import android.util.Log;
 
 public class App extends Application {
     public static final String CHANNEL_ID = "serviceChannel";
 
     @Override
     public void onCreate(){
-        Log.i("SHINOGI","App reached, creating Notification Channel");
         super.onCreate();
         createNotificationChannel();
     }
@@ -21,8 +19,10 @@ public class App extends Application {
             NotificationChannel serviceChannel = new NotificationChannel(
                     CHANNEL_ID,"Service Channel", NotificationManager.IMPORTANCE_DEFAULT
             );
+
             NotificationManager manager = getSystemService(NotificationManager.class);
             manager.createNotificationChannel(serviceChannel);
         }
     }
 }
+

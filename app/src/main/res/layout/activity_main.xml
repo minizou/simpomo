@@ -7,146 +7,139 @@
     android:background="@color/background_grey"
     tools:context=".MainActivity">
 
-    <Button
-        android:id="@+id/btn_session"
-        android:layout_width="0dp"
-        android:layout_height="70dp"
-        android:layout_marginStart="24dp"
-        android:layout_marginLeft="24dp"
-        android:layout_marginTop="16dp"
-        android:layout_marginEnd="24dp"
-        android:layout_marginRight="24dp"
-        android:onClick="beginSession"
-        android:textSize="16sp"
-        app:backgroundTint="@color/background_lighter_grey"
+    <!-- txt_timer -->
+    <TextView
+        android:id="@+id/txt_timer"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+
+        android:gravity="center"
+        android:text="@string/txt_study_time"
+        android:textColor="@color/white"
+
+        android:textSize="60sp"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
-    <Button
-        android:id="@+id/txt_time_elapsed"
-        android:layout_width="0dp"
-        android:layout_height="70dp"
-        android:layout_marginStart="24dp"
-        android:layout_marginLeft="24dp"
-        android:layout_marginEnd="24dp"
-        android:layout_marginRight="24dp"
-        android:layout_marginBottom="16dp"
-        android:enabled="false"
-        android:textColor="@color/text_grey"
-        android:textSize="16sp"
-        app:backgroundTint="@color/background_lighter_grey"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/btn_statistics"
-        app:layout_constraintStart_toStartOf="parent" />
-
-    <Button
-        android:id="@+id/btn_statistics"
-        android:layout_width="0dp"
-        android:layout_height="70dp"
-        android:layout_marginEnd="24dp"
-        android:layout_marginRight="24dp"
-        android:layout_marginBottom="16dp"
-        android:text="Stats"
-        android:textColor="@color/text_yellow"
-        android:textSize="16sp"
-        app:backgroundTint="@color/background_lighter_grey"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
-
-    <Button
-        android:id="@+id/btn_begin_studying"
-        android:layout_width="0dp"
-        android:layout_height="70dp"
-        android:layout_marginStart="24dp"
-        android:layout_marginLeft="24dp"
-        android:layout_marginTop="16dp"
-        android:layout_marginEnd="24dp"
-        android:layout_marginRight="24dp"
-        android:enabled="false"
-        android:onClick="beginStudying"
-        android:text="Begin Studying"
-        android:textSize="16sp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintHorizontal_bias="0.497"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/txt_status" />
 
+    <!-- txt_elapsed -->
     <Button
-        android:id="@+id/btn_begin_break"
+        android:id="@+id/txt_elapsed"
         android:layout_width="0dp"
         android:layout_height="70dp"
         android:layout_marginStart="24dp"
-        android:layout_marginLeft="24dp"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="16dp"
+
         android:layout_marginEnd="24dp"
-        android:layout_marginRight="24dp"
+        android:backgroundTint="@color/background_dark_grey"
         android:enabled="false"
-        android:onClick="beginBreak"
+        android:text="@string/txt_time_elapsed_zero"
+        android:textColor="@color/background_lighter_grey"
+
+        android:textSize="16sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="1.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/btn_pause" />
+
+    <!-- txt_status -->
+    <Button
+        android:id="@+id/txt_status"
+        android:layout_width="0dp"
+        android:layout_height="80dp"
+        android:layout_marginStart="24dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="24dp"
+
+        android:backgroundTint="@color/background_lighter_grey"
+        android:enabled="false"
+        android:text="@string/txt_status_session_inactive"
+        android:textColor="@color/light_yellow"
+        android:textSize="14sp"
+
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <!-- btn_session -->
+    <Button
+        android:id="@+id/btn_session"
+        android:layout_width="0dp"
+        android:layout_height="80dp"
+        android:layout_marginStart="24dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="16dp"
+
+        android:backgroundTint="@color/teal"
+        android:enabled="true"
+        android:onClick="clickSession"
+        android:text="Begin Session"
+        android:textColor="@color/white"
+
+        android:textSize="14sp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/btn_stats"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <!-- btn_begin studying/break -->
+    <Button
+        android:id="@+id/btn_begin"
+        android:layout_width="0dp"
+        android:layout_height="70dp"
+        android:layout_marginStart="24dp"
+
+        android:layout_marginTop="4dp"
+        android:layout_marginEnd="24dp"
+        android:backgroundTint="@color/background_lighter_grey"
+        android:enabled="false"
+        android:onClick="clickBegin"
+
+        android:text="Begin Studying"
+        android:textColor="@color/light_grey"
         android:textSize="16sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/btn_begin_studying" />
+        app:layout_constraintTop_toBottomOf="@+id/txt_timer" />
 
+    <!-- btn_pause -->
     <Button
         android:id="@+id/btn_pause"
         android:layout_width="0dp"
         android:layout_height="70dp"
         android:layout_marginStart="24dp"
-        android:layout_marginLeft="24dp"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="16dp"
         android:layout_marginEnd="24dp"
-        android:layout_marginRight="24dp"
+
+        android:backgroundTint="@color/background_lighter_grey"
         android:enabled="false"
-        android:onClick="pauseResumeTimer"
+        android:onClick="clickPause"
+        android:text="Pause Timer"
+        android:textColor="@color/light_grey"
+
         android:textSize="16sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/btn_begin_break" />
+        app:layout_constraintTop_toBottomOf="@+id/btn_begin" />
 
+    <!-- btn_stats -->
     <Button
-        android:id="@+id/btn_stop_alarm"
+        android:id="@+id/btn_stats"
         android:layout_width="0dp"
-        android:layout_height="70dp"
-        android:layout_marginStart="24dp"
-        android:layout_marginLeft="24dp"
-        android:layout_marginTop="8dp"
+        android:layout_height="80dp"
         android:layout_marginEnd="24dp"
-        android:layout_marginRight="24dp"
+        android:layout_marginBottom="16dp"
+
+        android:backgroundTint="@color/background_lighter_grey"
         android:enabled="false"
-        android:onClick="stopAlarmSound"
-        android:textSize="16sp"
-        android:text="Stop Alarm Sound"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/btn_pause" />
+        android:text="Stats"
+        android:textColor="@color/light_grey"
+        android:textSize="14sp"
 
-    <TextView
-        android:id="@+id/txt_timer"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:gravity="center"
-        android:textColor="@color/text_white"
-        android:textSize="60sp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/btn_session" />
-
-    <TextView
-        android:id="@+id/txt_status"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:fontFamily="sans-serif-smallcaps"
-        android:gravity="center"
-        android:textColor="@color/text_yellow"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/txt_timer" />
-
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

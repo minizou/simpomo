@@ -1,4 +1,4 @@
-package mini.pomodoro_alpha;
+package mini.pomodoro_delta;
 
 import android.content.Context;
 
@@ -21,6 +21,6 @@ public class ExampleInstrumentedTest {
     public void useAppContext() {
         // Context of the app under test.
         Context appContext = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        assertEquals("mini.pomodoro_alpha", appContext.getPackageName());
+        assertEquals("mini.pomodoro_delta", appContext.getPackageName());
     }
 }

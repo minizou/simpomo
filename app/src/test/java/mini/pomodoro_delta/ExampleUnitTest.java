@@ -1,4 +1,4 @@
-package mini.pomodoro_alpha;
+package mini.pomodoro_delta;
 
 import org.junit.Test;
 
