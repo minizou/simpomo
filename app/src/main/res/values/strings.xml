@@ -1,15 +1,36 @@
 <resources>
     <string name="app_name">Pomodoro Delta</string>
-    <string name="txt_end_session">End Session</string>
+
+    <string name="btn_end_session">End Session</string>
     <string name="btn_bgn_session">Begin Session</string>
-    <string name="txt_bgn_break">Begin Break</string>
+    <string name="btn_bgn_break">Begin Break</string>
+    <string name="btn_bgn_long_break">Begin Long Break</string>
     <string name="btn_bgn_study">Begin Studying</string>
-    <string name="txt_resume_timer">Resume Timer</string>
+    <string name="btn_resume_timer">Resume Timer</string>
     <string name="btn_pause_timer">Pause Timer</string>
+    <string name="btn_back">Back</string>
+
+    <string name="txt_status_session_inactive">Current status:\nSession Not Active</string>
+    <string name="txt_status_session_active">Current Status:\nSession Active</string>
     <string name="txt_status_study">Current status:\nStudy Time</string>
     <string name="txt_status_break">Current status:\nBreak Time</string>
+    <string name="txt_status_long_break">Current status:\nLong Break Time</string>
     <string name="txt_status_paused">Current Status:\nPaused</string>
-    <string name="txt_study_time">25:00</string>
-    <string name="txt_time_elapsed_zero">Time Elapsed: 00:00</string>
-    <string name="txt_status_session_inactive">Current status:\nSession Not Active</string>
+    <string name="txt_status_default_elapsed">Time Elapsed: 00:00</string>
+
+    <string name="txt_default_study_time">25:00</string>
+    <string name="txt_default_time">00:00</string>
+    <string name="txt_default_num_sessions">0</string>
+
+    <string name="txt_stats">Stats</string>
+    <string name="txt_statistics">Statistics</string>
+    <string name="txt_info">Data is saved after each >1 min session.</string>
+
+    <string name="txt_total_time_studied">Total Time Studied</string>
+    <string name="txt_total_num_sessions">Total Number of Sessions</string>
+    <string name="txt_max_time">Most Time Studied in A Session</string>
+    <string name="txt_avg_time_per_session">Avg Time Studied / Session</string>
+    <string name="txt_personal_best">Personal best max time studied! 🔥</string>
+    <string name="txt_session_not_recorded">Previous session not recorded.</string>
+
 </resources>

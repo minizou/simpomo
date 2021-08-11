@@ -8,7 +8,7 @@
 
         <!-- Secondary brand color. -->
         <item name="colorSecondary">@color/green</item>
-        <item name="colorSecondaryVariant">@color/purple</item>
+        <item name="colorSecondaryVariant">@color/orange</item>
         <item name="colorOnSecondary">@color/black</item>
 
         <!-- Status bar color. -->
