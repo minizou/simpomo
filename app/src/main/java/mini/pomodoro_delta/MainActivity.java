@@ -11,6 +11,7 @@ import android.content.pm.ActivityInfo;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.TextView;
 
@@ -40,6 +41,7 @@ public class MainActivity extends AppCompatActivity {
     private Button btnAlarm;
     private TextView txtTimer;
     private TextView txtStatus;
+    private TextView txtResetStats;
 
     // session stats
     private long msRemaining;
@@ -68,10 +70,10 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         this.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         sharedPreferences = getPreferences(MODE_PRIVATE);
         alarm = new Alarm(getApplicationContext());
-
         btnSession = findViewById(R.id.btn_session);
         btnBegin = findViewById(R.id.btn_begin);
         btnPause = findViewById(R.id.btn_pause);
@@ -79,6 +81,7 @@ public class MainActivity extends AppCompatActivity {
         txtTimer = findViewById(R.id.txt_timer);
         txtStatus = findViewById(R.id.txt_status);
         txtElapsed = findViewById(R.id.txt_elapsed);
+        txtResetStats = findViewById(R.id.txt_reset_stats);
 
         getUIData();
     }
@@ -189,6 +192,37 @@ public class MainActivity extends AppCompatActivity {
 
     public void clickStats(View v) {
         openStatsActivity();
+    }
+
+    public void clickResetStats(View v) {
+        switch ((String) txtResetStats.getText()) {
+            case "Reset Stats?":
+                txtResetStats.setText("Are you sure?");
+                break;
+            case "Are you sure?":
+                txtResetStats.setText("This action cannot be undone.");
+                break;
+            case "This action cannot be undone.":
+                txtResetStats.setText("Click 3 times to permanently reset stats.");
+                break;
+            case "Click 3 times to permanently reset stats.":
+                txtResetStats.setText("Click 2 times to permanently reset stats.");
+                break;
+            case "Click 2 times to permanently reset stats.":
+                txtResetStats.setText("Click 1 time to permanently reset stats.");
+                break;
+            default:
+                allTimeNumSessions = 0;
+                allTimeTotalMsElapsed = 0;
+                allTimeMaxMsElapsed = 0;
+                txtResetStats.setEnabled(false);
+                txtResetStats.setText("Stats have been permanently reset.");
+        }
+    }
+
+    public void clickAlarm(View v) {
+        alarm.stopAlarmSound();
+        updateAlarmButtonUI(false);
     }
 
     // UI handling
@@ -357,16 +391,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // sound interaction
-
     private void updateAlarmButtonUI(boolean enable) {
         txtElapsed.setVisibility(enable ? View.INVISIBLE : View.VISIBLE);
         btnAlarm.setVisibility(enable ? View.VISIBLE : View.INVISIBLE);
         btnAlarm.setEnabled(true);
     }
-
-    public void clickAlarm(View v) {
-        alarm.stopAlarmSound();
-        updateAlarmButtonUI(false);
-    }
-
 }

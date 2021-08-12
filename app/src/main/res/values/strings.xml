@@ -32,5 +32,6 @@
     <string name="txt_avg_time_per_session">Avg Time Studied / Session</string>
     <string name="txt_personal_best">Personal best max time studied! 🔥</string>
     <string name="txt_session_not_recorded">Previous session not recorded.</string>
+    <string name="txt_reset">Reset Stats?</string>
 
 </resources>
