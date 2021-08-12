@@ -1,6 +1,8 @@
 # SimPomo: The Simple Pomodoro Timer
 
-SimPomo is a simple timer app for Android based on the Pomodoro Technique. The timer rotates between 25 minutes for studying and 5 minutes for studying. Every 4 rotations (called pomodoros), the timer starts a longer break of 15 minutes. It is recommended to keep the SimPomo main activity active on your device while studying but not required.
+SimPomo is a simple timer app for Android based on the Pomodoro Technique. The timer rotates between 25 minutes for studying and 5 minutes for studying. Every 4 rotations (called pomodoros), the timer starts a longer break of 15 minutes. 
+
+It is recommended to keep the SimPomo main activity active on your device while studying but not required.
 
 # Features
 - A global stats activity keeping track of
@@ -16,6 +18,7 @@ SimPomo is a simple timer app for Android based on the Pomodoro Technique. The t
 # Future Improvements
 - Make the study, break, and long break times adjustable by the user
 - Keep a database of global stats for all users and increment a leaderboard or rank system
+- Improve milliseconds accuracy of timer
 
 ## Preview
 ![Image of App UI](https://github.com/minizou/pomodoro-v2/blob/main/images/preview_readme.png?raw=true)
