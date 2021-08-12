@@ -167,12 +167,13 @@
         android:layout_marginBottom="24dp"
 
         android:backgroundTint="@color/red"
+        android:enabled="false"
+        android:onClick="clickAlarm"
         android:text="Stop Alarm Sound"
         android:textColor="@color/white"
         android:textSize="16sp"
-        android:visibility="invisible"
-        android:enabled="false"
 
+        android:visibility="invisible"
         app:layout_constraintBottom_toTopOf="@+id/btn_session"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="1.0"

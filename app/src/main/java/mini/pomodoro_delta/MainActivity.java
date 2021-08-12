@@ -30,6 +30,7 @@ import android.widget.TextView;
  */
 
 public class MainActivity extends AppCompatActivity {
+    private Alarm alarm;
     private SharedPreferences sharedPreferences;
     private SharedPreferences.Editor editor;
     private Button btnSession;
@@ -55,9 +56,9 @@ public class MainActivity extends AppCompatActivity {
     private static int allTimeNumSessions;
 
     private static boolean isTimerFinished;
-    private final long MS_STUDY_TIME = 1 * 5 * 1000;
-    private final long MS_BREAK_TIME = 5 * 60 * 1000;
-    private final long MS_LONG_BREAK_TIME = 16 * 60 * 1000;
+    private final long MS_STUDY_TIME = 25 * 60 * 1000;
+    private final long MS_BREAK_TIME = 5 * 50 * 1000;
+    private final long MS_LONG_BREAK_TIME = 15 * 60 * 1000;
 
     private BroadcastReceiver broadcastReceiver;
 
@@ -69,6 +70,7 @@ public class MainActivity extends AppCompatActivity {
         this.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
 
         sharedPreferences = getPreferences(MODE_PRIVATE);
+        alarm = new Alarm(getApplicationContext());
 
         btnSession = findViewById(R.id.btn_session);
         btnBegin = findViewById(R.id.btn_begin);
@@ -99,6 +101,7 @@ public class MainActivity extends AppCompatActivity {
                     updateTimerUI(msRemaining,txtTimer,"");
                     updateTimerUI(totalMsElapsed + msElapsed,txtElapsed,"Time Elapsed: ");
                     if (isTimerFinished) {
+                        alarm.playAlarmSound();
                         resumeUI();
                     }
                 }
@@ -131,6 +134,7 @@ public class MainActivity extends AppCompatActivity {
             stopServiceTimer();
             resetUI();
             collectStats();
+            alarm.stopAlarmSound();
             msElapsed = 0;
             totalMsElapsed = 0;
             msRemaining = 0;
@@ -264,6 +268,7 @@ public class MainActivity extends AppCompatActivity {
             }
             updateTimerUI(msRemaining,txtTimer,"");
         }
+        updateAlarmButtonUI(Alarm.getIsAlarmOn());
     }
 
     private void resetUI() {
@@ -360,9 +365,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void clickAlarm(View v) {
-
+        alarm.stopAlarmSound();
+        updateAlarmButtonUI(false);
     }
-
-
 
 }

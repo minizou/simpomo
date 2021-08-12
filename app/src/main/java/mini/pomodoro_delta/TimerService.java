@@ -42,7 +42,6 @@ public class TimerService extends Service {
 
         if (timer != null) { timer.cancel(); }
         turnOffWakeLock();
-        stopAlarmSound();
     }
 
     @Override
@@ -83,7 +82,8 @@ public class TimerService extends Service {
                 setIsTimerFinished(true);
                 sendBroadcast();
                 updateNotification("Timer finished!");
-                playAlarmSound();
+                Alarm alarm = new Alarm(getApplicationContext());
+                alarm.playAlarmSound();
             }
         };
     }
@@ -160,33 +160,6 @@ public class TimerService extends Service {
         if (wakeLock != null) {
             wakeLock.release();
             Log.i("wakeLock","turning off");
-        }
-    }
-
-    // sound interaction
-    private void playAlarmSound() {
-        try {
-            Vibrator vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                vibrator.vibrate(VibrationEffect.createOneShot(1000, VibrationEffect.DEFAULT_AMPLITUDE));
-            } else {
-                //deprecated in API 26
-                vibrator.vibrate(1000);
-            }
-
-            Uri notification = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
-            ringtone = RingtoneManager.getRingtone(getApplicationContext(), notification);
-            ringtone.play();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void stopAlarmSound() {
-        try {
-            ringtone.stop();
-        } catch (Exception e) {
-            e.printStackTrace();
         }
     }
 
