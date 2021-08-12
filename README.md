@@ -18,4 +18,4 @@ SimPomo is a simple timer app for Android based on the Pomodoro Technique. The t
 - Keep a database of global stats for all users and increment a leaderboard or rank system
 
 ## Preview
-![Image of App UI](https://github.com/minizou/pomodoro/blob/main/images/preview_readme.png?raw=true)
+![Image of App UI](https://github.com/minizou/pomodoro-v2/blob/main/images/preview_readme.png?raw=true)
